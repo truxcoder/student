@@ -1,0 +1,16 @@
+version: "2"
+sql:
+  - engine: "sqlite"       # 数据库类型（支持 postgres/mysql/sqlite）
+    schema: "schema.sql"    # 表结构文件
+    queries: "queries/"     # 查询 SQL 目录
+    gen:
+      go:
+        package: "sqlc"          # 生成代码的包名
+        out: "../internal/sqlc"     # 输出目录
+        emit_json_tags: true   # 生成 JSON 标签（便于序列化）
+        emit_prepared_queries: true  # 生成预编译查询（性能优化）
+        emit_interface: true   # 生成 Querier 接口（便于测试 mock）
+        emit_pointers_for_null_types: true # 核心配置：将可空字段生成为 Go 指针
+        overrides:             # 类型映射覆盖（如自定义时间类型）
+          - db_type: "timestamptz"
+            go_type: "time.Time"

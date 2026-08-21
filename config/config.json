@@ -1,0 +1,10 @@
+{
+  "app": {
+    "name": "Student Management System",
+    "port": 3000,
+    "host": "localhost"
+  },
+  "db": {
+    "dns": "/data/student.db"
+  }
+}
