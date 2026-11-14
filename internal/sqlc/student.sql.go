@@ -36,14 +36,17 @@ func (q *Queries) CreateStudent(ctx context.Context, arg CreateStudentParams) er
 	return err
 }
 
-const deleteStudent = `-- name: DeleteStudent :exec
+const deleteStudent = `-- name: DeleteStudent :execrows
 DELETE FROM students
 WHERE id = ?1
 `
 
-func (q *Queries) DeleteStudent(ctx context.Context, id string) error {
-	_, err := q.exec(ctx, q.deleteStudentStmt, deleteStudent, id)
-	return err
+func (q *Queries) DeleteStudent(ctx context.Context, id string) (int64, error) {
+	result, err := q.exec(ctx, q.deleteStudentStmt, deleteStudent, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getStudentByID = `-- name: GetStudentByID :one
@@ -105,34 +108,42 @@ func (q *Queries) ListStudents(ctx context.Context) ([]Student, error) {
 	return items, nil
 }
 
-const updateStudent = `-- name: UpdateStudent :exec
+const updateStudent = `-- name: UpdateStudent :execrows
 UPDATE students
-SET name = ?1,
-    gender = ?2,
-    birthday = ?3,
-    score = COALESCE(?4, score),
-    classroom = ?5,
+SET name = COALESCE(?1, name),
+    gender = COALESCE(?2, gender),
+    birthday = COALESCE(?3, birthday),
+    score = CASE
+                WHEN CAST(?4 AS INTEGER) = 1 THEN NULL
+                ELSE COALESCE(?5, score)
+            END,
+    classroom = COALESCE(?6, classroom),
     updated_at = CURRENT_TIMESTAMP
-WHERE id = ?6
+WHERE id = ?7
 `
 
 type UpdateStudentParams struct {
-	Name      string    `json:"name"`
-	Gender    string    `json:"gender"`
-	Birthday  time.Time `json:"birthday"`
-	Score     *float64  `json:"score"`
-	Classroom string    `json:"classroom"`
-	ID        string    `json:"id"`
+	Name       *string    `json:"name"`
+	Gender     *string    `json:"gender"`
+	Birthday   *time.Time `json:"birthday"`
+	ClearScore int64      `json:"clear_score"`
+	Score      *float64   `json:"score"`
+	Classroom  *string    `json:"classroom"`
+	ID         string     `json:"id"`
 }
 
-func (q *Queries) UpdateStudent(ctx context.Context, arg UpdateStudentParams) error {
-	_, err := q.exec(ctx, q.updateStudentStmt, updateStudent,
+func (q *Queries) UpdateStudent(ctx context.Context, arg UpdateStudentParams) (int64, error) {
+	result, err := q.exec(ctx, q.updateStudentStmt, updateStudent,
 		arg.Name,
 		arg.Gender,
 		arg.Birthday,
+		arg.ClearScore,
 		arg.Score,
 		arg.Classroom,
 		arg.ID,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

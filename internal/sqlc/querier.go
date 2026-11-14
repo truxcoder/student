@@ -10,10 +10,10 @@ import (
 
 type Querier interface {
 	CreateStudent(ctx context.Context, arg CreateStudentParams) error
-	DeleteStudent(ctx context.Context, id string) error
+	DeleteStudent(ctx context.Context, id string) (int64, error)
 	GetStudentByID(ctx context.Context, id string) (Student, error)
 	ListStudents(ctx context.Context) ([]Student, error)
-	UpdateStudent(ctx context.Context, arg UpdateStudentParams) error
+	UpdateStudent(ctx context.Context, arg UpdateStudentParams) (int64, error)
 }
 
 var _ Querier = (*Queries)(nil)

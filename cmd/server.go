@@ -35,12 +35,12 @@ func main() {
 	if err != nil {
 		l.Fatal("Failed to connect to database", "err", err)
 	}
-	repo := repository.NewRepository(db)
-	studentRepository := student.NewStudentRepository(repo)
-	svc := service.NewService(l)
-	studentService := student.NewStudentService(svc, studentRepository)
-	hdl := handler.NewHandler(l)
-	studentHandler := student.NewStudentHandler(hdl, studentService)
+	repo := repository.New(db)
+	studentRepo := student.NewRepository(repo)
+	svc := service.New(l, db.Tx)
+	studentSvc := student.NewService(svc, studentRepo)
+	hdl := handler.New(l)
+	studentHandler := student.NewHandler(hdl, studentSvc)
 	chiServer := server.NewHTTPServer(addr, studentHandler)
 	httpServer := myhttp.NewHTTPServer(chiServer, l, func() error {
 		l.Info("cleanup...")

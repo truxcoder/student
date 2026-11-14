@@ -2,11 +2,15 @@ package student
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+
 	"student/internal/repository"
 	"student/internal/sqlc"
 )
 
-type StudentRepository interface {
+type Repository interface {
 	Get(ctx context.Context, id string) (sqlc.Student, error)
 	List(ctx context.Context) ([]sqlc.Student, error)
 	Create(ctx context.Context, student sqlc.CreateStudentParams) error
@@ -14,40 +18,57 @@ type StudentRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
-type studentRepository struct {
-	*repository.Repository
+type repo struct {
+	*repository.Base
 }
 
-func NewStudentRepository(repo *repository.Repository) StudentRepository {
-	return &studentRepository{repo}
+func NewRepository(base *repository.Base) Repository {
+	return &repo{base}
 }
 
-func (r *studentRepository) Get(ctx context.Context, id string) (sqlc.Student, error) {
-	student, err := r.DB.GetStudentByID(ctx, id)
+func (r *repo) Get(ctx context.Context, id string) (sqlc.Student, error) {
+	student, err := r.Q(ctx).GetStudentByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return sqlc.Student{}, fmt.Errorf("%w: id=%s", ErrNotFound, id)
+		}
 		return sqlc.Student{}, err
 	}
 	return student, nil
 }
 
-func (r *studentRepository) List(ctx context.Context) ([]sqlc.Student, error) {
-	students, err := r.DB.ListStudents(ctx)
+func (r *repo) List(ctx context.Context) ([]sqlc.Student, error) {
+	students, err := r.Q(ctx).ListStudents(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return students, nil
 }
 
-func (r *studentRepository) Create(ctx context.Context, student sqlc.CreateStudentParams) error {
-	return r.DB.CreateStudent(ctx, student)
+func (r *repo) Create(ctx context.Context, student sqlc.CreateStudentParams) error {
+	return r.Q(ctx).CreateStudent(ctx, student)
 }
 
-func (r *studentRepository) Update(ctx context.Context, student sqlc.UpdateStudentParams) error {
-	return r.DB.UpdateStudent(ctx, student)
+func (r *repo) Update(ctx context.Context, student sqlc.UpdateStudentParams) error {
+	rows, err := r.Q(ctx).UpdateStudent(ctx, student)
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("%w: id=%s", ErrNotFound, student.ID)
+	}
+	return nil
 }
 
-func (r *studentRepository) Delete(ctx context.Context, id string) error {
-	return r.DB.DeleteStudent(ctx, id)
+func (r *repo) Delete(ctx context.Context, id string) error {
+	rows, err := r.Q(ctx).DeleteStudent(ctx, id)
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("%w: id=%s", ErrNotFound, id)
+	}
+	return nil
 }
 
 // User accepted prediction:
