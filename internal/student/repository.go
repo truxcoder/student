@@ -70,5 +70,3 @@ func (r *repo) Delete(ctx context.Context, id string) error {
 	}
 	return nil
 }
-
-// User accepted prediction:
